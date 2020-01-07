@@ -241,7 +241,7 @@ def image_to_tfexample_tcga(image_data, image_format, height, width, image_name,
       'image/height': int64_feature(height),
       'image/width': int64_feature(width),
       'image/name': bytes_feature(image_name.encode('utf8')),
-      'phenotype/subtype': bytes_feature(sub_type.encode('utf8'))}))
+      'phenotype/subtype': int64_feature(sub_type)}))
 
   
 def image_to_tfexample_step1(image_data, image_format, height, width, image_name,

@@ -1,0 +1,1 @@
+/dtascfs/DL/lungcancer/AD_SC_PDL1/results/Lung_DL1/resnet_v1_50/train/model.ckpt-240000	resnet_v1_50	resnet_v1_50/block4,resnet_v1_50/logits

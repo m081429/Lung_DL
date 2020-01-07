@@ -1,0 +1,181 @@
+
+import io
+import sys, argparse
+import os
+
+import numpy as np
+import math
+from sklearn.metrics import classification_report
+from sklearn.metrics import confusion_matrix
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import precision_score
+from sklearn.metrics import recall_score
+from sklearn.metrics import roc_auc_score
+from sklearn import metrics
+import statistics
+#tf_files=os.listdir(tfrecord_dir)
+#num_samples = 0
+#tfrecord=sys.argv[0]
+#file=sys.argv[1]
+filenames=[]
+
+
+'''function to check if input files exists and valid''' 	
+def input_file_validity(file):
+	'''Validates the input files'''
+	if os.path.exists(file)==False:
+		raise argparse.ArgumentTypeError( '\nERROR:Path:\n'+file+':Does not exist')
+	if os.path.isfile(file)==False:
+		raise argparse.ArgumentTypeError( '\nERROR:File expected:\n'+file+':is not a file')
+	if os.access(file,os.R_OK)==False:
+		raise argparse.ArgumentTypeError( '\nERROR:File:\n'+file+':no read access ')
+	return file
+
+def argument_parse():
+	'''Parses the command line arguments'''
+	parser=argparse.ArgumentParser(description='')
+	parser.add_argument("-t","--train",help="TFRECORD file",required="True",type=input_file_validity)
+	parser.add_argument("-p","--test",help="input file",required="True",type=input_file_validity)
+	return parser
+
+def softmax(x,y):
+	X=math.exp(x)
+	Y=math.exp(y)
+	sum=X+Y
+	X=round(X/sum,2)
+	Y=round(Y/sum,2)
+	return [X,Y]
+
+def class_rep(samp,label,softmax0,softmax1):	
+	'''creating list with unique elements'''
+	ts = list(set(samp))
+	max_limit=0.75
+	min_limit=0.25
+	'''iterating through each sample'''
+	num_mut=0
+	num_not_mut=0
+	pred_num_mut=0
+	pred_num_not_mut=0	
+	Y_test=[]
+	predicted=[]
+	for y in  ts:
+		idx = [i for i, x in enumerate(samp) if x ==y]
+		samp_list = [samp[i] for i in idx] 
+		samp_label_list = [label[i] for i in idx]
+		samp_softmax0_list = [softmax0[i] for i in idx]
+		samp_softmax1_list = [softmax1[i] for i in idx]
+		tn=0
+		num0=0
+		num1=0
+		for k in range(0,len(samp_list)):
+			#sys.exit(1)
+			tn=tn+1	
+			# if samp_softmax0_list[k]<0.5:
+				# num1=num1+1
+				
+			# if samp_softmax0_list[k]>0.5:
+				# num0=num0+1
+			if samp_softmax0_list[k]< min_limit and samp_softmax1_list[k] > max_limit:
+				num1=num1+1
+				
+			if samp_softmax0_list[k] > max_limit and samp_softmax1_list[k] < min_limit:
+				num0=num0+1	
+			#print(str(samp_list[k])+"\t"+str(samp_label_list[k])+"\t"+str(samp_softmax0_list[k])+"\t"+str(samp_softmax1_list[k]))	
+		f1=num1/tn
+		f0=num0/tn
+		#f1=statistics.mean(samp_softmax1_list)
+		#f0=statistics.mean(samp_softmax0_list)
+		if f0 > f1:
+			predicted.append(0)
+		else:
+			predicted.append(1)
+		#Y_test.append(int(samp_label_list[k]))
+		#print(samp_label_list[k])
+		if samp_label_list[k] == "ADC":
+			Y_test.append(0)
+		else:
+			Y_test.append(1)
+	#print(Y_test)
+	#sys.exit(0)	
+		#if samp_label_list[k]==0:
+	#report = classification_report(Y_test, predicted)
+	#print(Y_test)
+	#print(predicted)
+	#report = confusion_matrix(Y_test, predicted, labels=[0,1]).ravel()
+	tn_A0_P0,fp_A0_P1,fn_A1_P0,tp_A1_P1= confusion_matrix(Y_test, predicted, labels=[0,1]).ravel()
+	
+	report={}
+	report["tn_A0_P0"]=tn_A0_P0
+	report["fp_A0_P1"]=fp_A0_P1
+	report["fn_A1_P0"]=fn_A1_P0
+	report["tp_A1_P1"]=tp_A1_P1
+	report["accuracy"]=accuracy_score(Y_test, predicted)
+	report["sensitivity"]=round(tp_A1_P1/(tp_A1_P1+fn_A1_P0),2)
+	report["specifcity"]=round(tn_A0_P0/(tn_A0_P0+fp_A0_P1),2)
+	report["f1"]=round(((2*tp_A1_P1)/(2*tp_A1_P1+fp_A0_P1+fn_A1_P0)),2)
+	fpr, tpr, thresholds = metrics.roc_curve(Y_test, predicted, pos_label=1)
+	report["AUC"]=round(metrics.auc(fpr, tpr),2)
+	return report
+	
+def main():	
+	abspath=os.path.abspath(__file__)
+	words = abspath.split("/")
+	#print("You are running CNV caller Workflow "+words[len(words) - 2])
+	'''reading the config filename'''
+	parser=argument_parse()
+	arg=parser.parse_args()
+	#print("Entered train logits file "+arg.train+"\n\n")
+	#print("Entered test logits file "+arg.test+"\n\n")
+	'''test'''
+	test_samp=[]
+	test_label=[]
+	test_logit_0=[]
+	test_logit_1=[]
+	test_softmax_0=[]
+	test_softmax_1=[]
+	fobj = open(arg.test)
+	for file in fobj:
+		file = file.strip()
+		p = file.split("\t")
+		samp=p[0].split("_")
+		test_samp.append(samp[0])
+		test_label.append(p[1])
+		test_logit_0.append(float(p[2]))
+		test_logit_1.append(float(p[3]))
+		sf=softmax(float(p[2]),float(p[3]))
+		test_softmax_0.append(sf[0])
+		test_softmax_1.append(sf[1])
+	fobj.close()
+
+	'''train'''
+	train_samp=[]
+	train_label=[]
+	train_logit_0=[]
+	train_logit_1=[]
+	train_softmax_0=[]
+	train_softmax_1=[]
+	fobj = open(arg.train)
+	for file in fobj:
+		file = file.strip()
+		p = file.split("\t")
+		samp=p[0].split("_")
+		train_samp.append(samp[0])
+		train_label.append(p[1])
+		train_logit_0.append(float(p[2]))
+		train_logit_1.append(float(p[3]))
+		sf=softmax(float(p[2]),float(p[3]))
+		train_softmax_0.append(sf[0])
+		train_softmax_1.append(sf[1])
+	fobj.close()
+	
+	#print("Training")
+	report=class_rep(train_samp,train_label,train_softmax_0,train_softmax_1)
+	print(report)
+	
+	#print("Testing")
+	report=class_rep(test_samp,test_label,test_softmax_0,test_softmax_1)
+	print(report)
+	
+if __name__ == "__main__":
+	main()
+				

@@ -77,7 +77,10 @@ def create_patch(svs,patch_sub_size,patch_dir,samp,p,tf_output):
 		while start_y+patch_sub_size < maxy:
 			tmp_start_x=int(round(start_x*multi_factor,0))
 			tmp_start_y=int(round(start_y*multi_factor,0))
-			img_patch = OSobj.read_region((tmp_start_x,tmp_start_y), level, (patch_sub_size, patch_sub_size))
+			try:
+				img_patch = OSobj.read_region((tmp_start_x,tmp_start_y), level, (patch_sub_size, patch_sub_size))
+			except:
+				sys.exit(0)
 			#img_patch = OSobj.read_region((start_x,start_y), level, (maxx, maxy))
 			#num=num+1
 			#img_patch.save(patch_dir+'/'+str(num)+'.png', "png")
@@ -89,11 +92,14 @@ def create_patch(svs,patch_sub_size,patch_dir,samp,p,tf_output):
 			grey_img = im_sub.convert('L')
 			'''Convert the image into numpy array'''
 			np_grey = np.array(grey_img)
+			patch_mean=round(np.mean(np_grey),2)
+			patch_std=round(np.std(np_grey),2)
 			'''Identify patched where there are tissues'''
 			'''tuple where first element is rows, second element is columns'''
-			idx = np.where(np_grey < threshold)
+			#idx = np.where(np_grey < threshold)
 			'''proceed further only if patch has non empty values'''
-			if len(idx[0])>0 and len(idx[1])>0 and width==patch_sub_size and height==patch_sub_size:
+			#if len(idx[0])>0 and len(idx[1])>0 and width==patch_sub_size and height==patch_sub_size:
+			if patch_mean<245 and patch_std>4 and width==patch_sub_size and height==patch_sub_size:
 				#if width==patch_sub_size and height==patch_sub_size:
 				#print("sucess")
 				'''creating patch name'''
@@ -107,7 +113,12 @@ def create_patch(svs,patch_sub_size,patch_dir,samp,p,tf_output):
 				height=patch_sub_size
 				width=patch_sub_size 
 				image_name=num_patch     
-				sub_type=p[1]
+				sub_type=2
+				if p[1] == "ADC":
+					sub_type=0
+				if	p[1] == "SQCC":
+					sub_type=1
+				#sub_type=p[1]
 
 				imgByteArr = io.BytesIO()
 				im_sub.save(imgByteArr, format='PNG')

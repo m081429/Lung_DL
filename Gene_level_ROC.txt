@@ -1,0 +1,8 @@
+#testing
+cm
+  Sensitivity Specificity Pos.Pred.Value Neg.Pred.Value Precision    Recall
+1   0.5909091      0.5625      0.4814815      0.6666667 0.4814815 0.5909091
+         F1 Prevalence Detection.Rate Detection.Prevalence Balanced.Accuracy TN
+1 0.5306122  0.4074074      0.2407407                  0.5         0.5767045 18
+  FP FN TP Gene
+1 14  9 13    A
