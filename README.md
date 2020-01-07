@@ -25,7 +25,7 @@ Create_TCGA_ImagePatches_level2.py:Script to create Level3 256 X 256 image patch
 Create_TCGA_TF.sh: Script to iterate through svs files and convert them to tfrecords
 Ex:
 
-python /dtascfs/DL/lungcancer/AD_SC_PDL1/scripts/Lung_DL/Create_TCGA_ImagePatches_level3.py -i /dtascfs/DL/lungcancer/AD_SC_PDL1/LOG/AC100.txt -p /dtascfs/DL/lungcancer/AD_SC_PDL1/PATCHES -o /dtascfs/DL/lungcancer/AD_SC_PDL1/TFRECORDS_Level3 -s 224
+python ./Lung_DL/Create_TCGA_ImagePatches_level3.py -i .//LOG/AC100.txt -p .//PATCHES -o .//TFRECORDS_Level3 -s 224
 
 ```
 
@@ -47,9 +47,9 @@ Run 1: script = tcga_run_models.sh
 starting model : downloaded resnet_v1_50
 Learning rate : 0.01
 steps : 500000
-LOGDIR=/dtascfs/DL/lungcancer/AD_SC_PDL1/results/Lung_DL1
+LOGDIR=.//results/Lung_DL1
 Obtained eval: 69.99
-Ex: python /dtascfs/DL/lungcancer/AD_SC_PDL1/scripts/models/research/slim/train_image_classifier.py --train_dir=/dtascfs/DL/lungcancer/AD_SC_PDL1/results/Lung_DL1_level3/resnet_v1_50/train --dataset_name=tcga --dataset_split_name=train --dataset_dir=/dtascfs/DL/lungcancer/AD_SC_PDL1/TFRECORDS_Level3/FINAL_TF --model_name=resnet_v1_50 --log_every_n_steps 100 --num_clones 2 --max_number_of_steps 70000 --batch_size 32 --checkpoint_path /dtascfs/DL/lungcancer/AD_SC_PDL1/scripts/models/research/slim/checkpoints/resnet_v1_50_2016_08_28/resnet_v1_50.ckpt --checkpoint_exclude_scopes=resnet_v1_50/logits --trainable_scopes=resnet_v1_50/logits --preprocessing_name tcga --optimizer rmsprop --learning_rate 0.01 --train_image_size 224
+Ex: python ./models/research/slim/train_image_classifier.py --train_dir=.//results/Lung_DL1_level3/resnet_v1_50/train --dataset_name=tcga --dataset_split_name=train --dataset_dir=.//TFRECORDS_Level3/FINAL_TF --model_name=resnet_v1_50 --log_every_n_steps 100 --num_clones 2 --max_number_of_steps 70000 --batch_size 32 --checkpoint_path ./models/research/slim/checkpoints/resnet_v1_50_2016_08_28/resnet_v1_50.ckpt --checkpoint_exclude_scopes=resnet_v1_50/logits --trainable_scopes=resnet_v1_50/logits --preprocessing_name tcga --optimizer rmsprop --learning_rate 0.01 --train_image_size 224
 
 ```
 
@@ -60,7 +60,15 @@ Run 2:script = tcga_run_models.sh
 starting model : model from step 3
 Learning rate : 0.001
 steps : 500000
-SLIM_SCRIPTS=/dtascfs/DL/lungcancer/AD_SC_PDL1/scripts/models/research/slim
+SLIM_SCRIPTS=./models/research/slim
 Obtained eval: 
-Ex: python /dtascfs/DL/lungcancer/AD_SC_PDL1/scripts/models/research/slim/train_image_classifier.py --train_dir=/dtascfs/DL/lungcancer/AD_SC_PDL1/results/Lung_DL1_level3/resnet_v1_50/train --dataset_name=tcga --dataset_split_name=train --dataset_dir=/dtascfs/DL/lungcancer/AD_SC_PDL1/TFRECORDS_Level3/FINAL_TF --model_name=resnet_v1_50 --log_every_n_steps 100 --num_clones 2 --max_number_of_steps 70000 --batch_size 32 --checkpoint_path /dtascfs/DL/lungcancer/AD_SC_PDL1/scripts/models/research/slim/checkpoints/resnet_v1_50_2016_08_28/resnet_v1_50.ckpt --checkpoint_exclude_scopes=resnet_v1_50/logits --trainable_scopes=resnet_v1_50/logits --preprocessing_name tcga --optimizer rmsprop --learning_rate 0.001 --train_image_size 224
+Ex: python ./models/research/slim/train_image_classifier.py --train_dir=.//results/Lung_DL1_level3/resnet_v1_50/train --dataset_name=tcga --dataset_split_name=train --dataset_dir=.//TFRECORDS_Level3/FINAL_TF --model_name=resnet_v1_50 --log_every_n_steps 100 --num_clones 2 --max_number_of_steps 70000 --batch_size 32 --checkpoint_path ./models/research/slim/checkpoints/resnet_v1_50_2016_08_28/resnet_v1_50.ckpt --checkpoint_exclude_scopes=resnet_v1_50/logits --trainable_scopes=resnet_v1_50/logits --preprocessing_name tcga --optimizer rmsprop --learning_rate 0.001 --train_image_size 224
+```
+## 5. Inference step: Output logit values for each image patch 
+```
+ python $SLIM_SCRIPTS/inference2.py --checkpoint_path ${TRAIN_LOGDIR} --eval_dir ${EVAL_LOGDIR} --dataset_name=tcga --dataset_split_name=tf --dataset_dir=${DATASET_DIR} --model_name=${MODELNAME} --batch_size 1 --preprocessing_name tcga  --eval_image_size $IMAGE_SIZE > k.txt 2>&1
+```
+## 6. ROC analysis to summarize the prediction from patch level logit values 
+```
+Rscript Gene_level_ROC.R
 ```
